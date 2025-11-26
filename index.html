@@ -34,6 +34,7 @@
       color: var(--text-main);
       min-height: 100vh;
       overflow-x: hidden;
+      cursor: none; /* hide default cursor */
     }
 
     /* Animated background gradient */
@@ -62,6 +63,56 @@
       opacity: 0.14;
       z-index: -2;
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='noStitch' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5' /%3E%3C/svg%3E");
+    }
+
+    /* Custom cursor */
+    .cursor-dot {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      mix-blend-mode: difference;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+    }
+
+    .cursor-ring {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.9);
+      box-shadow: 0 0 20px rgba(129, 140, 248, 0.6);
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%, -50%);
+      transition:
+        width 0.15s ease,
+        height 0.15s ease,
+        border-color 0.15s ease,
+        box-shadow 0.15s ease,
+        background 0.15s ease,
+        opacity 0.15s ease;
+    }
+
+    .cursor-ring.cursor-hover {
+      width: 40px;
+      height: 40px;
+      border-color: rgba(129, 140, 248, 1);
+      box-shadow: 0 0 30px rgba(129, 140, 248, 0.9);
+      background: radial-gradient(circle at center, rgba(79, 70, 229, 0.3), transparent);
+    }
+
+    .cursor-ring.cursor-down {
+      width: 32px;
+      height: 32px;
+      opacity: 0.8;
     }
 
     /* Navbar */
@@ -162,7 +213,11 @@
       gap: 0.4rem;
       position: relative;
       overflow: hidden;
-      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+      transition:
+        transform 0.18s ease,
+        box-shadow 0.18s ease,
+        border-color 0.18s ease,
+        background 0.18s ease;
     }
 
     .primary-btn span.arrow {
@@ -586,7 +641,11 @@
       border: 1px solid rgba(148, 163, 184, 0.7);
       box-shadow: 0 20px 40px rgba(15, 23, 42, 0.95);
       overflow: hidden;
-      transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, background 0.22s ease;
+      transition:
+        transform 0.22s ease,
+        box-shadow 0.22s ease,
+        border-color 0.22s ease,
+        background 0.22s ease;
       cursor: pointer;
     }
 
@@ -884,6 +943,10 @@
   </style>
 </head>
 <body>
+  <!-- Custom cursor elements -->
+  <div class="cursor-dot"></div>
+  <div class="cursor-ring"></div>
+
   <div class="noise"></div>
 
   <!-- NAVBAR -->
@@ -1394,7 +1457,7 @@
   </footer>
 
   <script>
-    // Smooth scroll for internal links (extra safety in older browsers)
+    // Smooth scroll for internal links
     document.querySelectorAll('a[href^="#"]').forEach(link => {
       link.addEventListener('click', e => {
         const targetId = link.getAttribute('href').substring(1);
@@ -1430,24 +1493,22 @@
       counterEls.forEach(el => {
         const target = parseInt(el.getAttribute('data-count'), 10);
         let current = 0;
-        const isMoney = target > 5000; // for formatting 150000 as 1,50,000 etc.
+        const isMoney = target > 5000;
 
         const step = () => {
           const increment = Math.max(1, Math.floor(target / 80));
           current += increment;
           if (current >= target) {
             current = target;
-            if (isMoney) {
-              el.textContent = '₹' + current.toLocaleString('en-IN');
-            } else {
-              el.textContent = current.toLocaleString('en-IN') + '+';
-            }
+          }
+
+          if (isMoney) {
+            el.textContent = '₹' + current.toLocaleString('en-IN');
           } else {
-            if (isMoney) {
-              el.textContent = '₹' + current.toLocaleString('en-IN');
-            } else {
-              el.textContent = current.toLocaleString('en-IN') + '+';
-            }
+            el.textContent = current.toLocaleString('en-IN') + '+';
+          }
+
+          if (current < target) {
             requestAnimationFrame(step);
           }
         };
@@ -1513,6 +1574,52 @@
 
     updateCountdown();
     setInterval(updateCountdown, 1000);
+
+    // Custom cursor logic
+    const cursorDot = document.querySelector('.cursor-dot');
+    const cursorRing = document.querySelector('.cursor-ring');
+
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+    let ringX = mouseX;
+    let ringY = mouseY;
+
+    window.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      cursorDot.style.left = mouseX + 'px';
+      cursorDot.style.top = mouseY + 'px';
+    });
+
+    function animateRing() {
+      const speed = 0.16; // lower = more lag
+      ringX += (mouseX - ringX) * speed;
+      ringY += (mouseY - ringY) * speed;
+      cursorRing.style.left = ringX + 'px';
+      cursorRing.style.top = ringY + 'px';
+      requestAnimationFrame(animateRing);
+    }
+    animateRing();
+
+    const hoverTargets = document.querySelectorAll(
+      'a, button, .track-card, .primary-btn, .secondary-link'
+    );
+
+    hoverTargets.forEach((el) => {
+      el.addEventListener('mouseenter', () => {
+        cursorRing.classList.add('cursor-hover');
+      });
+      el.addEventListener('mouseleave', () => {
+        cursorRing.classList.remove('cursor-hover');
+      });
+    });
+
+    window.addEventListener('mousedown', () => {
+      cursorRing.classList.add('cursor-down');
+    });
+    window.addEventListener('mouseup', () => {
+      cursorRing.classList.remove('cursor-down');
+    });
   </script>
 </body>
 </html>
